@@ -2,77 +2,138 @@ package at.fhooe.ai.im.g1;
 
 import robocode.AdvancedRobot;
 import robocode.RobotDeathEvent;
+import robocode.Rules;
 import robocode.ScannedRobotEvent;
 import robocode.util.Utils;
 
-import java.awt.geom.Point2D;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
-
-import static robocode.util.Utils.normalRelativeAngleDegrees;
+import java.util.Map;
 
 public class bruv extends AdvancedRobot {
 
     static LinkedHashMap<String, Double> enemyHashMapAngles;
     static LinkedHashMap<String, Double> enemyHashMapDistances;
-    static LinkedHashMap<String, Enemy> enemyHashMap;
+    static LinkedHashMap<String, Double> enemyHashMapEnergy;
+
     static double scanDir;
     static Object sought;
-
-    private String currentTarget;
+    static Object target;
 
     @Override
     public void run() {
 
+        init();
+
+        while (true) {
+
+            scanForRobots();
+
+            if (enemyHashMapAngles.size() == getOthers()) {
+                setTarget();
+                fireAtTarget();
+            }
+        }
+    }
+
+    // Called when any robot dies
+    public void onRobotDeath(RobotDeathEvent e) {
+        String name = e.getName();
+
+        // Forget robot on death
+        enemyHashMapAngles.remove(name);
+        enemyHashMapDistances.remove(name);
+        enemyHashMapEnergy.remove(name);
+
+        sought = null;
+
+        if (target == name) {
+            target = null;
+        }
+    }
+
+    // Called when radar detects a robot
+    public void onScannedRobot(ScannedRobotEvent e) {
+        String name = e.getName();
+
+        enemyHashMapAngles.put(name, getHeadingRadians() + e.getBearingRadians());    // Store name and angle to scanned robot
+        enemyHashMapDistances.put(name, e.getDistance());    // Store name and distance to scanned robot
+        enemyHashMapEnergy.put(name, e.getEnergy());    // Store name and distance to scanned robot
+
+        // Change direction of radar
+        if ((name == sought || sought == null) && enemyHashMapAngles.size() == getOthers()) {
+            scanDir = Utils.normalRelativeAngle(enemyHashMapAngles.values().iterator().next() - getRadarHeadingRadians());
+            sought = enemyHashMapAngles.keySet().iterator().next();
+        }
+    }
+
+    // Initializes class members
+    public void init() {
         scanDir = 1;
-        currentTarget = "";
         enemyHashMapAngles = new LinkedHashMap<String, Double>(5, 2, true);
         enemyHashMapDistances = new LinkedHashMap<String, Double>(5, 2, true);
-        enemyHashMap = new LinkedHashMap<String, Enemy>(5, 2, true);
+        enemyHashMapEnergy = new LinkedHashMap<String, Double>(5, 2, true);
 
         setAdjustGunForRobotTurn(true);    // Independent rotation of gun from body
         setAdjustRadarForGunTurn(true); // Independent rotation of radar from gun
+    }
 
-        int currentTurn = 4;
+    // Scans for enemy robots
+    public void scanForRobots() {
+        setTurnRadarRightRadians(scanDir * Double.POSITIVE_INFINITY); // Keep rotating radar
+        scan();
+    }
 
-        while (true) {
-            setTurnRadarRightRadians(scanDir * Double.POSITIVE_INFINITY); // Keep rotating radar
-            scan();
+    // Gets the closest enemy robot
+    public void setTarget() {
+        if (enemyHashMapAngles.size() == getOthers()) {
+
+            Double minDistance = Double.MAX_VALUE;
+            Object closestTarget = null;
+
+            for (Map.Entry<String, Double> entry : enemyHashMapDistances.entrySet()) {
+                Object name = entry.getKey();
+                Double distance = entry.getValue();
+
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestTarget = name;
+                }
+            }
+
+            target = closestTarget;
         }
     }
 
-    private void smartTarget() {
-        if (currentTarget == null) {
-            return;
-        }
+    // Rotates gun to target and start firing
+    public void fireAtTarget() {
+        if (target != null) {
+            Double absoluteBearing = enemyHashMapAngles.get(target);
 
-        double e = enemyHashMapAngles.get(currentTarget);
-        Enemy enemy = enemyHashMap.get(currentTarget);
-        double bearingFromGun = normalRelativeAngleDegrees(e - getGunHeadingRadians());
-        setTurnGunLeftRadians(bearingFromGun);
+            setTurnGunRightRadians(robocode.util.Utils.normalRelativeAngle(absoluteBearing - getGunHeadingRadians()));
 
-        if (getGunHeat() == 0) {
-            double energy = enemy.energy;
-            double dist = enemy.dist;
-            double selfEnergy = getEnergy();
-            double minPower = 0.3;
-            double firePower = 3.0;
-            if (dist > 50.0) {
-                firePower -= 2.0;
-            } else if (dist > 20.0) {
-                firePower--;
+            if (getGunHeat() == 0) {
+                double energy = enemyHashMapEnergy.get(target);
+                double dist = enemyHashMapDistances.get(target);
+                double selfEnergy = getEnergy();
+                double firePower = 3;
+
+                if (dist > 200) {
+                    firePower -= 2;
+                } else if (dist > 100) {
+                    firePower -= 1;
+                }
+
+                if (selfEnergy < 25) {
+                    firePower -= 0.5;
+                }
+
+                firePower = Clamp(firePower, 0.2, energy);
+                fire(firePower);
             }
-
-            if (selfEnergy < 20.0) {
-                firePower -= 0.3;
-            }
-
-            firePower = clamp(firePower, minPower, energy);
-            fire(firePower);
         }
     }
 
-    private double clamp(double val, double min, double max) {
+    private double Clamp(double val, double min, double max) {
         if (val > max) {
             val = max;
         }
@@ -81,67 +142,5 @@ public class bruv extends AdvancedRobot {
         }
 
         return val;
-    }
-
-    public void getNearestEnemy() {
-        double minDistance = Double.POSITIVE_INFINITY;
-        String targetName = null;
-        Iterator<String> it = enemyHashMapDistances.keySet().iterator();
-        while (it.hasNext()) {
-            String key = it.next();
-            double dist = enemyHashMapDistances.get(key);
-            if (dist < minDistance) {
-                minDistance = dist;
-                targetName = key;
-            }
-        }
-
-        currentTarget = targetName;
-    }
-
-    public void onRobotDeath(RobotDeathEvent e) {
-        String name = e.getName();
-
-        // Forget robot on death
-        enemyHashMap.remove(name);
-        enemyHashMapAngles.remove(name);
-        enemyHashMapDistances.remove(name);
-
-        sought = null;
-    }
-
-    public void onScannedRobot(ScannedRobotEvent e) {
-        String name = e.getName();
-        Enemy en;
-
-        if (enemyHashMap.containsKey(name)) {
-            en = enemyHashMap.get(name);
-        } else {
-            en = new Enemy();
-        }
-
-        double heading = getHeadingRadians();
-        double eBearing = e.getBearingRadians();
-        en.name = name;
-        en.bearing = heading + eBearing;
-        en.dist = e.getDistance();
-        en.energy = e.getEnergy();
-
-        double absoluteBearing = en.bearing;
-        double enemyX = getX() + en.dist * Math.sin(absoluteBearing);
-        double enemyY = getY() + en.dist * Math.cos(absoluteBearing);
-        en.pos = new Point2D.Double(enemyX, enemyY);
-        enemyHashMap.put(name, en);
-
-        enemyHashMapAngles.put(name, absoluteBearing);
-        enemyHashMapDistances.put(name, en.dist);
-
-        getNearestEnemy();
-        smartTarget();
-        // Change direction of scanner
-        if ((name == sought || sought == null) && enemyHashMap.size() == getOthers()) {
-            scanDir = Utils.normalRelativeAngle(enemyHashMap.values().iterator().next().bearing - getRadarHeadingRadians());
-            sought = enemyHashMap.keySet().iterator().next();
-        }
     }
 }
