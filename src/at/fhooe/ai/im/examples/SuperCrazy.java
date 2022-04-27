@@ -2,6 +2,7 @@ package at.fhooe.ai.im.examples;
 
 import robocode.*;
 import robocode.util.Utils;
+
 import java.awt.*;
 import java.awt.geom.*;
 
@@ -31,11 +32,11 @@ public class SuperCrazy extends AdvancedRobot {
      */
     public void run() {
         /* Set some crazy colors! */
-        setBodyColor(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
-        setGunColor(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
-        setRadarColor(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
-        setBulletColor(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
-        setScanColor(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
+        setBodyColor(new Color((float) Math.random(), (float) Math.random(), (float) Math.random()));
+        setGunColor(new Color((float) Math.random(), (float) Math.random(), (float) Math.random()));
+        setRadarColor(new Color((float) Math.random(), (float) Math.random(), (float) Math.random()));
+        setBulletColor(new Color((float) Math.random(), (float) Math.random(), (float) Math.random()));
+        setScanColor(new Color((float) Math.random(), (float) Math.random(), (float) Math.random()));
 
         setAdjustGunForRobotTurn(true);
         setAdjustRadarForGunTurn(true);
@@ -55,39 +56,39 @@ public class SuperCrazy extends AdvancedRobot {
      */
     public void onScannedRobot(ScannedRobotEvent e) {
         /* For effect only, doing this every turn could cause seizures. This makes it change every 32 turns. */
-        if(e.getTime() % 32 == 0) {
+        if (e.getTime() % 32 == 0) {
             /* Set some crazy colors! */
-            setBodyColor(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
-            setGunColor(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
-            setRadarColor(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
-            setBulletColor(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
-            setScanColor(new Color((float)Math.random(),(float)Math.random(),(float)Math.random()));
+            setBodyColor(new Color((float) Math.random(), (float) Math.random(), (float) Math.random()));
+            setGunColor(new Color((float) Math.random(), (float) Math.random(), (float) Math.random()));
+            setRadarColor(new Color((float) Math.random(), (float) Math.random(), (float) Math.random()));
+            setBulletColor(new Color((float) Math.random(), (float) Math.random(), (float) Math.random()));
+            setScanColor(new Color((float) Math.random(), (float) Math.random(), (float) Math.random()));
 
             /* Change the wall stick distance, to make us even more unpredictable */
-            wallStick = 120 + Math.random()*40;
+            wallStick = 120 + Math.random() * 40;
         }
 
 
         double absBearing = e.getBearingRadians() + getHeadingRadians();
-        double distance = e.getDistance() + (Math.random()-0.5)*5.0;
+        double distance = e.getDistance() + (Math.random() - 0.5) * 5.0;
 
         /* Radar Turn */
         double radarTurn = Utils.normalRelativeAngle(absBearing
                 // Subtract current radar heading to get turn required
-                - getRadarHeadingRadians() );
+                - getRadarHeadingRadians());
 
-        double baseScanSpan = (18.0 + 36.0*Math.random());
+        double baseScanSpan = (18.0 + 36.0 * Math.random());
         // Distance we want to scan from middle of enemy to either side
-        double extraTurn = Math.min(Math.atan(baseScanSpan / distance), Math.PI/4.0);
+        double extraTurn = Math.min(Math.atan(baseScanSpan / distance), Math.PI / 4.0);
         setTurnRadarRightRadians(radarTurn + (radarTurn < 0 ? -extraTurn : extraTurn));
 
         /* Movement */
-        if(--moveTime <= 0) {
-            distance = Math.max(distance, 100 + Math.random()*50) * 1.25;
-            moveTime = 50 + (long)(distance / lastBulletSpeed);
+        if (--moveTime <= 0) {
+            distance = Math.max(distance, 100 + Math.random() * 50) * 1.25;
+            moveTime = 50 + (long) (distance / lastBulletSpeed);
 
             ++sameDirectionCounter;
-            if(Math.random() < 0.5 || sameDirectionCounter > 16) {
+            if (Math.random() < 0.5 || sameDirectionCounter > 16) {
                 moveDirection = -moveDirection;
                 sameDirectionCounter = 0;
             }
@@ -95,25 +96,25 @@ public class SuperCrazy extends AdvancedRobot {
 
 
         /* Move perpendicular to our enemy, based on our movement direction */
-        double goalDirection = absBearing-Math.PI/2.0*moveDirection;
+        double goalDirection = absBearing - Math.PI / 2.0 * moveDirection;
 
         /* This is too clean for crazy! Add some real randomness. */
-        goalDirection += (Math.random()-0.5) * (Math.random()*2.0 + 1.0);
+        goalDirection += (Math.random() - 0.5) * (Math.random() * 2.0 + 1.0);
 
         /* Smooth around the walls, if we smooth too much, reverse direction! */
         double x = getX();
         double y = getY();
         double smooth = 0;
 
-        Rectangle2D fieldRect = new Rectangle2D.Double(18, 18, getBattleFieldWidth()-36, getBattleFieldHeight()-36);
-        while (!fieldRect.contains(x+Math.sin(goalDirection)*wallStick, y+ Math.cos(goalDirection)*wallStick)) {
+        Rectangle2D fieldRect = new Rectangle2D.Double(18, 18, getBattleFieldWidth() - 36, getBattleFieldHeight() - 36);
+        while (!fieldRect.contains(x + Math.sin(goalDirection) * wallStick, y + Math.cos(goalDirection) * wallStick)) {
             /* turn a little toward enemy and try again */
-            goalDirection += moveDirection*0.1;
+            goalDirection += moveDirection * 0.1;
             smooth += 0.1;
         }
 
         /* If we smoothed to much, then reverse direction. */
-        if(smooth > 0.5 + Math.random()*0.125) {
+        if (smooth > 0.5 + Math.random() * 0.125) {
             moveDirection = -moveDirection;
             sameDirectionCounter = 0;
         }
@@ -121,7 +122,7 @@ public class SuperCrazy extends AdvancedRobot {
         double turn = Utils.normalRelativeAngle(goalDirection - getHeadingRadians());
 
         /* Adjust so we drive backwards if the turn is less to go backwards */
-        if (Math.abs(turn) > Math.PI/2) {
+        if (Math.abs(turn) > Math.PI / 2) {
             turn = Utils.normalRelativeAngle(turn + Math.PI);
             setBack(100);
         } else {
@@ -132,11 +133,11 @@ public class SuperCrazy extends AdvancedRobot {
 
 
         /* Gun */
-        double bulletPower = 1.0 + Math.random()*2.0;
+        double bulletPower = 1.0 + Math.random() * 2.0;
         double bulletSpeed = 20 - 3 * bulletPower;
 
         /* Aim at a random offset in the general direction the enemy is heading. */
-        double enemyLatVel = e.getVelocity()*Math.sin(e.getHeadingRadians() - absBearing);
+        double enemyLatVel = e.getVelocity() * Math.sin(e.getHeadingRadians() - absBearing);
         double escapeAngle = Math.asin(8.0 / bulletSpeed);
 
         /* Signum produces 0 if it is not moving, meaning we will fire directly head on at an unmoving target */
@@ -145,7 +146,7 @@ public class SuperCrazy extends AdvancedRobot {
         setTurnGunRightRadians(Utils.normalRelativeAngle(absBearing + angleOffset - getGunHeadingRadians()));
 
         /* Adding this if so it does not kill itself by firing. */
-        if(getEnergy() > bulletPower) {
+        if (getEnergy() > bulletPower) {
             setFire(bulletPower);
         }
     }

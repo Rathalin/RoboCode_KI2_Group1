@@ -2,6 +2,7 @@ package at.fhooe.ai.im.examples;
 
 import robocode.*;
 import robocode.util.*;
+
 import java.awt.*;
 
 /**
@@ -72,7 +73,7 @@ public class SuperWalls extends AdvancedRobot {
 
         setMaxVelocity(Math.random() * 12);
 
-        if ((getRoundNum() == 0 || LGRating > HGRating) && getRoundNum() != 1){ // In the first round or when linear gun got more hitting percentage use linear targeting
+        if ((getRoundNum() == 0 || LGRating > HGRating) && getRoundNum() != 1) { // In the first round or when linear gun got more hitting percentage use linear targeting
             double bulletPower = Math.min(3, e.getEnergy() / 4);
             setTurnGunRightRadians(Utils.normalRelativeAngle(absBearing - getGunHeadingRadians() + Math.asin(latVel / (20 - 3 * bulletPower))));
             LGShots++;
@@ -88,10 +89,10 @@ public class SuperWalls extends AdvancedRobot {
     }
 
     public void onBulletHit(BulletHitEvent e) {
-        if(gunIdent) {
-            LGHits = LGHits+1;
+        if (gunIdent) {
+            LGHits = LGHits + 1;
         } else {
-            HGHits = HGHits+1;
+            HGHits = HGHits + 1;
         }
     }
 }
