@@ -1,9 +1,6 @@
 package at.fhooe.ai.im.g1;
 
-import robocode.AdvancedRobot;
-import robocode.RobotDeathEvent;
-import robocode.Rules;
-import robocode.ScannedRobotEvent;
+import robocode.*;
 import robocode.util.Utils;
 
 import java.util.LinkedHashMap;
@@ -18,6 +15,7 @@ public class bruv extends AdvancedRobot {
     static double scanDir;
     static Object sought;
     static Object target;
+    private double moveDirection = 1D;
 
     @Override
     public void run() {
@@ -63,6 +61,13 @@ public class bruv extends AdvancedRobot {
         if ((name == sought || sought == null) && enemyHashMapAngles.size() == getOthers()) {
             scanDir = Utils.normalRelativeAngle(enemyHashMapAngles.values().iterator().next() - getRadarHeadingRadians());
             sought = enemyHashMapAngles.keySet().iterator().next();
+        }
+
+        // Movement
+        setTurnRight(e.getBearing() + 90D);
+        setAhead(100 * moveDirection);
+        if (randomChance(5)) {
+            switchMoveDirection();
         }
     }
 
@@ -131,6 +136,21 @@ public class bruv extends AdvancedRobot {
                 fire(firePower);
             }
         }
+    }
+
+    @Override
+    public void onHitWall(HitWallEvent event) {
+        switchMoveDirection();
+    }
+
+
+    private boolean randomChance(double percent) {
+        return Math.random() * 100D < percent;
+    }
+
+
+    private void switchMoveDirection() {
+        moveDirection *= -1.0;
     }
 
     private double Clamp(double val, double min, double max) {
